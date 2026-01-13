@@ -83,11 +83,76 @@ namespace json {
 
     //serialization --------------------------------------------------------------
     std::string JsonValue::dump(int indent = -1) const {
-        
+        //-1 for indent means no formatting; entries will be displayed with no indentation regardless of reucrsion level. >= 0 means each level & entry will be displayed as newline
+        std::string out;
+        dump_impl(out, indent, 0);
+        return out;
     }
 
     void JsonValue::dump_impl(std::string& out, int indent, int current_indent) const {
-
+        if(is_null()) {
+            out += "null";
+        } else if(is_bool()) {
+            out += as_bool() ? "true" : "false";
+        } else if(is_numer()) {
+            std::ostringstream oss;
+            oss << as_number();
+            out += oss.str();
+        } else if(is_string()) {
+            out += '"';
+            for(char c : as_string()) {
+                switch(c) {
+                    case '"': out += "\\\""; break;
+                    case "\\": out += "\\\\"; break;
+                    case '\n': out += "\\n"; break;
+                    case '\r': out += "\\r"; break;
+                    case '\t': out += "\\t"; break;
+                    default: out += c;
+                }
+            }
+            cout += '"';
+        } else if(is_array()) {
+            const auto& arr = as_array();
+            out += '[';
+            bool first = true;
+            for(const auto& item : arr) {
+                if(!first) out += ',';
+                if(indent >= 0) {
+                    out += '\n';
+                    out += std::string(current_indent + indent, ' ');
+                }
+                item.dump_impl(out, indent, current_indent+indent);
+                first = false;
+            }
+            if(indent >= 0 && !arr.emtpy()) {
+                out += '\n';
+                out += std::string(current_indent, ' ');
+            }
+            out += ']';
+        } else if(is_object()) {
+            const auto& obj = as_object();
+            out += '{';
+            bool first = true;
+            for(const auto& [key, val] : obj) {
+                if(!first) out += ',';
+                if(indent >= 0) {
+                    out += '\n';
+                    out += std::string(current_indent+indent, ' ');
+                }
+                out += '"';
+                out += key;
+                out += '"';
+                out += ':';
+                if(indent >= 0) out += ' ';
+                val.dump_impl(out, indent, current_indent+indent);
+                first = false;
+            }
+            if(indent >=0 && !obj.empty()) {
+                out += '\n';
+                out += std::string(current_indent, ' ');
+            }
+            out += '}';
+        }
     }
 
 }
