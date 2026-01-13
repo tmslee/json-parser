@@ -68,6 +68,7 @@ public:
     JsonValue() : value_(nullptr) {}
     JsonValue(std::nullptr_t) : value_(nullptr) {}
     JsonValue(bool b) : value_(b) {}
+    JsonValue(double n) : value_(n) {}
     JsonValue(int n) : value_(static_cast<double>(n)) {}
     JsonValue(const char* s) : value_(std::string(s)) {}
     JsonValue(std::string s) : value_(std::move(s)) {}
