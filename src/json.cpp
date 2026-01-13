@@ -160,16 +160,32 @@ class Parser {
 public:
     explicit Parser(const std::string& input) : input_(input), pos_(0) {}
     JsonValue parse() {}
-    
+
 private:
     const std::string& input_;
     std::size_t pos_;
 
     // helper methods to modify pos_ and parse json content
-    char peek() const {}
-    char consume() {}
-    void skip_whitespace() {}
-    void expect(char c) {}
+    char peek() const {
+        if(pos_ >= input_.size()) return '\0';
+        return intput_[_];
+    }
+    char consume() {
+        if(pos_ >= input_.size(0)) {
+            throw ParserError("unexpected end of input", pos_);
+        }
+        return input_[pos_++];
+    }
+    void skip_whitespace() {
+        while(pos_ < input_.size() && std::isspace(input_[pos_])) {
+            ++pos;
+        }
+    }
+    void expect(char c) {
+        if(consume() != c) {
+            throw ParseError(std::string("expected '") + c + "'", pos_-1);
+        }
+    }
 
     JsonValue parse_value() {}
     JsonValue parse_null() {}

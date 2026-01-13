@@ -118,6 +118,7 @@ class ParseError : public std::runtime_error {
 public:
     ParseError(const std::string& msg, std::size_t pos)
         : std::runtime_error(msg + " at position " + std::to_string(pos)), position_(pos) {}
+        
     [[nodiscard]] std::size_t position() const {return position_;}
     
 private:
