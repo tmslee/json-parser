@@ -124,6 +124,7 @@ private:
     std::size_t position_;
 };
 
+// only expose public API of parser & hide implementation details in src file
 [[nodiscard]] JsonValue parse(const std::string& json);
 
 }
