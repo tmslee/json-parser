@@ -185,6 +185,7 @@ JSON number rules are strict:
 - `42`, `-17`, `0` (integers)
 - `3.14`, `-0.5`, `0.0` (decimals)
 - `1e10`, `2E5`, `1e-3`, `3.14e+2` (exponents)
+
 **Invalid:**
 - `.5` (no leading digit)
 - `5.` (no digit after decimal)
