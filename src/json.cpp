@@ -3,6 +3,31 @@
 #include <sstream>
 
 namespace json {
+
+JsonValue::JsonValue(const JsonValue& other) {
+    if(other.is_null()) {
+        value_ = nullptr;
+    } else if(other.is_bool()) {
+        value_ = other.as_bool();
+    } else if(other.is_number()) {
+        value_ = other.as_number();
+    } else if(other.is_string()) {
+        value_ = other.as_string();
+    } else if(other.is_array()) {
+        value_ = std::make_unique<JsonArray>(other.as_array());
+    } else if(other.is_object()) {
+        value_ = std::make_unique<JsonObject>(other.as_object());
+    }
+}
+
+JsonValue& JsonValue::operator=(const JsonValue& other) {
+    if(this != &other) {
+        JsonValue temp(other);
+        std::swap(value_, temp.value_);
+    }
+    return *this;
+}
+
 // type checks --------------------------------------------------------------
 bool JsonValue::is_null() const noexcept {
     return std::holds_alternative<JsonNull>(value_);
@@ -17,10 +42,10 @@ bool JsonValue::is_string() const noexcept {
     return std::holds_alternative<JsonString>(value_);
 }
 bool JsonValue::is_array() const noexcept {
-    return std::holds_alternative<JsonArray>(value_);
+    return std::holds_alternative<std::unique_ptr<JsonArray>>(value_);
 }
 bool JsonValue::is_object() const noexcept {
-    return std::holds_alternative<JsonObject>(value_);
+    return std::holds_alternative<std::unique_ptr<JsonObject>>(value_);
 }
 
 //accessors --------------------------------------------------------------
@@ -43,21 +68,22 @@ const std::string& JsonValue::as_string() const {
 }
 const JsonArray& JsonValue::as_array() const {
     if(!is_array()) throw std::runtime_error("not an array");
-    return std::get<JsonArray>(value_);
+    return *std::get<std::unique_ptr<JsonArray>>(value_);
 }
 const JsonObject& JsonValue::as_object() const {
     if(!is_object()) throw std::runtime_error("not an object");
-    return std::get<JsonObject>(value_);
+    return *std::get<std::unique_ptr<JsonObject>>(value_);
 }
 //mutable accessors
 JsonArray& JsonValue::as_array() {
     if(!is_array()) throw std::runtime_error("not an array");
-    return std::get<JsonArray>(value_);
+    return *std::get<std::unique_ptr<JsonArray>>(value_);
 }
 JsonObject& JsonValue::as_object() {
     if(!is_object()) throw std::runtime_error("not an object");
-    return std::get<JsonObject>(value_);
+    return *std::get<std::unique_ptr<JsonObject>>(value_);
 }
+
 //array & obj access
 const JsonValue& JsonValue::operator[](std::size_t index) const {
     return as_array().at(index);

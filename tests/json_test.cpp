@@ -112,7 +112,7 @@ TEST(JsonParse, NestedArray){
     auto val = json::parse("[[1,2],[3,4]]");
     EXPECT_EQ(val.size(), 2);
     EXPECT_EQ(val[0][0].as_number(), 1.0);
-    EXPECT_EQ(val[1][1].as_number(). 4.0);
+    EXPECT_EQ(val[1][1].as_number(), 4.0);
 }
 
 TEST(JsonParse, EmptyObject){
@@ -121,13 +121,13 @@ TEST(JsonParse, EmptyObject){
     EXPECT_EQ(val.size(), 0);
 }
 TEST(JsonParse, SimpleObject){
-    auto val = json::parse("{\"name\"}: \"Alice\", \"age\": 30");
+    auto val = json::parse("{\"name\": \"Alice\", \"age\": 30}");
     EXPECT_TRUE(val.is_object());
     EXPECT_EQ(val["name"].as_string(), "Alice");
     EXPECT_EQ(val["age"].as_number(), 30.0);
 }
 TEST(JsonParse, NestedObject){
-    auto val = json::parse("{\"persion\": {\"name\": \"Bob\"}}");
+    auto val = json::parse("{\"person\": {\"name\": \"Bob\"}}");
     EXPECT_EQ(val["person"]["name"].as_string(), "Bob");
 }
 TEST(JsonParse, ObjectWithArray){
@@ -137,88 +137,93 @@ TEST(JsonParse, ObjectWithArray){
 }
 TEST(JsonParse, Whiespace){
     auto val = json::parse("    {     \"a\"    :  1   }    ");
-    EXPECT_EQ(val["a"].as_number, 1.0);
+    EXPECT_EQ(val["a"].as_number(), 1.0);
 }
 
 // parse error tests -------------------------------------------------------------
 TEST(JsonParse, InvalidLeadingZero){
-    EXPECT_THROW(json::parse("007", json::ParseError));
+    EXPECT_THROW(json::parse("007"), json::ParseError);
 }
 TEST(JsonParse, InvalidLeadingPlus){
-    EXPECT_THROW(json::parse("+5", json::ParseError));
+    EXPECT_THROW(json::parse("+5"), json::ParseError);
 }
 TEST(JsonParse, InvalidDecimalNoLeadingDigit){
-    EXPECT_THROW(json::parse(".5", json::ParseError));
+    EXPECT_THROW(json::parse(".5"), json::ParseError);
 }
 
 TEST(JsonParse, InvalidTrailingCommaArray){
-    EXPECT_THROW(json::parse("[1,2,]", json::ParseError));
+    EXPECT_THROW(json::parse("[1,2,]"), json::ParseError);
 }
 TEST(JsonParse, InvalidTrailingCommaObject){
-    EXPECT_THROW(json::parse("{\"a\":1,}", json::ParseError));
+    EXPECT_THROW(json::parse("{\"a\":1,}"), json::ParseError);
 }
 
 TEST(JsonParse, UnterminatedString){
-    EXPECT_THROW(json::parse("\"hello", json::ParseError));
+    EXPECT_THROW(json::parse("\"hello"), json::ParseError);
 }
 TEST(JsonParse, UnterminatedArray){
-    EXPECT_THROW(json::parse("[1,2]", json::ParseError));
+    EXPECT_THROW(json::parse("[1,2"), json::ParseError);
 }
 TEST(JsonParse, UnterminatedObject){
-    EXPECT_THROW(json::parse("{\"a\": 1", json::ParseError));
+    EXPECT_THROW(json::parse("{\"a\": 1"), json::ParseError);
 }
 
 TEST(JsonParse, InvalidToken){
-    EXPECT_THROW(json::parse("undefined", json::ParseError));
+    EXPECT_THROW(json::parse("undefined"), json::ParseError);
 }
 TEST(JsonParse, TrailingGarbage){
-    EXPECT_THROW(json::parse("123abc", json::ParseError));
+    EXPECT_THROW(json::parse("123abc"), json::ParseError);
 }
 
 // type access tets --------------------------------------------------------------
+/*
+    note: we cast returning values of as_ methods to void since they are declared as nodiscard
+    and EXPECT_THROW does not 'use' the return value & triggers a warning
+*/
+
 TEST(JsonParse, WrongTypeThrows){
     auto val = json::parse("42");
-    EXPECT_THROW(val.as_string(), std::runtime_error);
-    EXPECT_THROW(val.as_bool(), std::runtime_error);
-    EXPECT_THROW(val.as_array(), std::runtime_error);
-    EXPECT_THROW(val.as_object(), std::runtime_error);
+    EXPECT_THROW((void)val.as_string(), std::runtime_error);
+    EXPECT_THROW((void)val.as_bool(), std::runtime_error);
+    EXPECT_THROW((void)val.as_array(), std::runtime_error);
+    EXPECT_THROW((void)val.as_object(), std::runtime_error);
 }
 TEST(JsonParse, ArrayOutOfBounds){
     auto val = json::parse("[1,2]");
-    EXPECT_THROW(val[5], std::out_of_range);
+    EXPECT_THROW((void)val[5], std::out_of_range);
 }
 TEST(JsonParse, ObjectMissingKey){
     auto val = json::parse("{\"a\":1}");
     const auto& cval = val;
-    EXPECT_THROW(cval["missing"], std::out_of_range);
+    EXPECT_THROW((void)cval["missing"], std::out_of_range);
 }
 
 // dump tests --------------------------------------------------------------------
-TEST(JsonParse, Null){
+TEST(JsonParse, NullDump){
     json::JsonValue val(nullptr);
     EXPECT_EQ(val.dump(), "null");
 }
-TEST(JsonParse, Bool){
+TEST(JsonParse, BoolDump){
     EXPECT_EQ(json::JsonValue(true).dump(), "true");
     EXPECT_EQ(json::JsonValue(false).dump(), "false");
 }
-TEST(JsonParse, Number){
+TEST(JsonParse, NumberDump){
     json::JsonValue val(42.0);
     EXPECT_EQ(val.dump(), "42");
 }
-TEST(JsonParse, String){
+TEST(JsonParse, StringDump){
     json::JsonValue val("hello");
     EXPECT_EQ(val.dump(), "\"hello\"");
 }
-TEST(JsonParse, StringWithEscapes){
+TEST(JsonParse, StringWithEscapesDump){
     json::JsonValue val("line1\nline2");
     EXPECT_EQ(val.dump(), "\"line1\\nline2\"");
 }
-TEST(JsonParse, EmptyArray){
+TEST(JsonParse, EmptyArrayDump){
     json::JsonValue val(json::JsonArray{});
     EXPECT_EQ(val.dump(), "[]");
 }
-TEST(JsonParse, EmptyObject){
+TEST(JsonParse, EmptyObjectDump){
     json::JsonValue val(json::JsonObject{});
     EXPECT_EQ(val.dump(), "{}");
 }
@@ -227,9 +232,9 @@ TEST(JsonParse, RoundTrip){
     auto val = json::parse(original);
     auto dumped = val.dump();
     auto reparsed = json::parse(dumped);
-    EXPECT_EQ(reparsed["name".as_string(), "Alice"]);
-    EXPECT_EQ(reparsed["age".as_number(), 30]);
-    EXPECT_EQ(reparsed["active".as_bool(), true]);
+    EXPECT_EQ(reparsed["name"].as_string(), "Alice");
+    EXPECT_EQ(reparsed["age"].as_number(), 30);
+    EXPECT_EQ(reparsed["active"].as_bool(), true);
 }
 
 // construction tests ------------------------------------------------------------
@@ -239,7 +244,7 @@ TEST(JsonParse, ConstructFromInt){
     EXPECT_EQ(val.as_number(), 42.0);
 }
 TEST(JsonParse, ConstructFromString){
-    json::Jsonvalue val("hello");
+    json::JsonValue val("hello");
     EXPECT_TRUE(val.is_string());
     EXPECT_EQ(val.as_string(), "hello");
 }
@@ -249,7 +254,7 @@ TEST(JsonParse, MutableArrayAccess){
     EXPECT_EQ(val[0].as_number(), 10.0);
 }
 TEST(JsonParse, MutableObjectAccess){
-    json::JsonValue val(json::JsonObject{{"a" : 1}});
+    json::JsonValue val(json::JsonObject{{"a", 1}});
     val["b"] = 2;
     EXPECT_EQ(val["b"].as_number(), 2.0);
 }

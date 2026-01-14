@@ -10,17 +10,9 @@
 
 namespace json {
 
-class JsonValue;
-
-using JsonNull = std::nullptr_t;
-using JsonBool = bool;
-using JsonNumber = double;
-using JsonString = std::string;
-using JsonArray = std::vector<JsonValue>;
-using JsonObject = std::unordered_map<std::string, JsonValue>;
-
 class JsonValue {
 public:
+    
     /*
         notes on variants:
         - pros:
@@ -55,14 +47,38 @@ public:
         for production json libraries (nlohmann/json) they often used tagged unions for performance & control
     */
 
+    using JsonNull = std::nullptr_t;
+    using JsonBool = bool;
+    using JsonNumber = double;
+    using JsonString = std::string;
+    using JsonArray = std::vector<JsonValue>;
+    using JsonObject = std::unordered_map<std::string, JsonValue>;
+
     using Value = std::variant<
         JsonNull, 
         JsonBool, 
         JsonNumber, 
         JsonString, 
-        JsonArray, 
-        JsonObject
+        std::unique_ptr<JsonArray>, 
+        std::unique_ptr<JsonObject>
     >;
+    /*
+        some notes on this particular variant implementation:
+        - std::vector<JsonValue> needs to know sizeof(JsonValue) to allocate storage
+        - std::unordered_map<...> needs complete JsonValue for its internal std::pair
+        - std::variant<> needs complete types to determine its size
+        
+        - so if we try to alias value = std::variant<..., JsonArray, JsonObject> we get a circular definition:
+            - JsonValue contains variant, variant contains JsonArray, JsonArray contains JsonValue, JsonValue is not complete yet.
+        
+        - wrapping in std::unique_ptr fixes this:
+            - compiler knows its size (its jsut a pointer)
+            - it only needs 'T' to be complete when you call -> or * or when the dtor runs (needs to call delete)
+            - note that both these happen in the source file (.cpp) where JsonValue is complete.
+
+        - however, the trade off is that arrays and objects are now heap allocated.
+        
+    */
     
     //constructors for each type
     JsonValue() : value_(nullptr) {}
@@ -72,8 +88,18 @@ public:
     JsonValue(int n) : value_(static_cast<double>(n)) {}
     JsonValue(const char* s) : value_(std::string(s)) {}
     JsonValue(std::string s) : value_(std::move(s)) {}
-    JsonValue(JsonArray arr) : value_(std::move(arr)) {}
-    JsonValue(JsonObject obj) : value_(std::move(obj)) {}
+    JsonValue(JsonArray arr) : value_(std::make_unique<JsonArray>(std::move(arr))) {}
+    JsonValue(JsonObject obj) : value_(std::make_unique<JsonObject>(std::move(obj))) {}
+
+    //copy (unique ptr requires explicit copy)
+    JsonValue(const JsonValue& other);
+    JsonValue& operator=(const JsonValue& other);
+
+    //move (default is fine)
+    JsonValue(JsonValue&&) noexcept = default;
+    JsonValue& operator=(JsonValue&&) noexcept = default;
+    
+    ~JsonValue() = default;
 
     //type checks
     //noexcept because std::holds_alternative is noexcept (no alloc, no throw)
@@ -113,6 +139,14 @@ private:
     Value value_;
     void dump_impl(std::string& out, int indent, int current_indent) const;
 };
+
+// we alias in namespace for convenience
+using JsonNull = JsonValue::JsonNull;
+using JsonBool = JsonValue::JsonBool;
+using JsonNumber = JsonValue::JsonNumber;
+using JsonString = JsonValue::JsonString;
+using JsonArray = JsonValue::JsonArray;
+using JsonObject = JsonValue::JsonObject;
 
 // parser exception
 class ParseError : public std::runtime_error {
