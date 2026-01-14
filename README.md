@@ -181,6 +181,7 @@ parse_value()
 
 ### Number Parsing
 JSON number rules are strict:
+
 **Valid:**
 - `42`, `-17`, `0` (integers)
 - `3.14`, `-0.5`, `0.0` (decimals)
