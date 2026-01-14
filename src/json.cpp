@@ -82,7 +82,7 @@ std::size_t JsonValue::size() const {
 }
 
 //serialization --------------------------------------------------------------
-std::string JsonValue::dump(int indent = -1) const {
+std::string JsonValue::dump(int indent) const {
     //-1 for indent means no formatting; entries will be displayed with no indentation regardless of reucrsion level. >= 0 means each level & entry will be displayed as newline
     std::string out;
     dump_impl(out, indent, 0);
@@ -94,7 +94,7 @@ void JsonValue::dump_impl(std::string& out, int indent, int current_indent) cons
         out += "null";
     } else if(is_bool()) {
         out += as_bool() ? "true" : "false";
-    } else if(is_numer()) {
+    } else if(is_number()) {
         std::ostringstream oss;
         oss << as_number();
         out += oss.str();
@@ -103,14 +103,14 @@ void JsonValue::dump_impl(std::string& out, int indent, int current_indent) cons
         for(char c : as_string()) {
             switch(c) {
                 case '"': out += "\\\""; break;
-                case "\\": out += "\\\\"; break;
+                case '\\': out += "\\\\"; break;
                 case '\n': out += "\\n"; break;
                 case '\r': out += "\\r"; break;
                 case '\t': out += "\\t"; break;
                 default: out += c;
             }
         }
-        cout += '"';
+        out += '"';
     } else if(is_array()) {
         const auto& arr = as_array();
         out += '[';
@@ -124,7 +124,7 @@ void JsonValue::dump_impl(std::string& out, int indent, int current_indent) cons
             item.dump_impl(out, indent, current_indent+indent);
             first = false;
         }
-        if(indent >= 0 && !arr.emtpy()) {
+        if(indent >= 0 && !arr.empty()) {
             out += '\n';
             out += std::string(current_indent, ' ');
         }
@@ -163,8 +163,8 @@ public:
         skip_whitespace();
         auto value = parse_value();
         skip_whitespace();
-        if(pos_ != input.size()) {
-            thow ParseError("unexpected characters after JSON", pos_);
+        if(pos_ != input_.size()) {
+            throw ParseError("unexpected characters after JSON", pos_);
         }
         return value;
     }
@@ -176,17 +176,17 @@ private:
     // helper methods to modify pos_ and parse json content
     char peek() const {
         if(pos_ >= input_.size()) return '\0';
-        return intput_[_];
+        return input_[pos_];
     }
     char consume() {
-        if(pos_ >= input_.size(0)) {
-            throw ParserError("unexpected end of input", pos_);
+        if(pos_ >= input_.size()) {
+            throw ParseError("unexpected end of input", pos_);
         }
         return input_[pos_++];
     }
     void skip_whitespace() {
         while(pos_ < input_.size() && std::isspace(input_[pos_])) {
-            ++pos;
+            ++pos_;
         }
     }
     void expect(char c) {
@@ -201,7 +201,7 @@ private:
         if(c == 'n') return parse_null();
         if(c=='t' || c=='f') return parse_bool();
         if(c=='"') return parse_string();
-        if(c=='[') return parse_arrary();
+        if(c=='[') return parse_array();
         if(c=='{') return parse_object();
         if(c=='-' || std::isdigit(c)) return parse_number();
         throw ParseError("unexpected character", pos_);
@@ -265,7 +265,7 @@ private:
             while(std::isdigit(peek())) ++pos_;
         } else {
             // numeric value cannot lead with a non digit
-            throw ParseError("invalid number", pos);
+            throw ParseError("invalid number", pos_);
         }
         
         //handle decimal point (all decimal must be followed by string of digits)
@@ -353,7 +353,7 @@ private:
 
         if(peek() == ']') {
             ++pos_;
-            return Jsonvalue(std::move(arr));
+            return JsonValue(std::move(arr));
         }
 
         while(true) {

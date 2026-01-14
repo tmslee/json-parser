@@ -15,7 +15,7 @@ class JsonValue;
 using JsonNull = std::nullptr_t;
 using JsonBool = bool;
 using JsonNumber = double;
-using JsonString = std::string
+using JsonString = std::string;
 using JsonArray = std::vector<JsonValue>;
 using JsonObject = std::unordered_map<std::string, JsonValue>;
 
@@ -95,7 +95,7 @@ public:
     [[nodiscard]] JsonObject& as_object();
 
     //array access
-    [[nodiscard]] const JsonValue& operator[](std::size_t index) const
+    [[nodiscard]] const JsonValue& operator[](std::size_t index) const;
     [[nodiscard]] JsonValue& operator[](std::size_t index);
 
     //object access
